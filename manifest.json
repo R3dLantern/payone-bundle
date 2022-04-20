@@ -1,0 +1,17 @@
+{
+  "bundles": {
+    "Scarcloud\\PayoneBundle": ["all"]
+  },
+  "composer-scripts": {
+    "cache:clear": "symfony-cmd"
+  },
+  "env": {
+    "PAYONE_MODE": "test",
+    "PAYONE_API_VERSION": "3.8",
+    "PAYONE_MID": "",
+    "PAYONE_AID": "",
+    "PAYONE_PORTAL_ID": "",
+    "PAYONE_PORTAL_KEY": "",
+    "PAYONE_ENCODING": "UTF-8"
+  }
+}

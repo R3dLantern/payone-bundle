@@ -1,0 +1,8 @@
+parameters:
+  scarcloud_payone.mode: '%env(PAYONE_MODE)%'
+  scarcloud_payone.api_version: '%env(PAYONE_API_VERSION)%',
+  scarcloud_payone.mid: '%env(PAYONE_MID)%',
+  scarcloud_payone.aid: '%env(PAYONE_AID)%',
+  scarcloud_payone.portal_id: '%env(PAYONE_PORTAL_ID)%'
+  scarcloud_payone.portal_key: '%env(PAYONE_PORTAL_KEY)%',
+  scarcloud_payone.encoding: '%env(PAYONE_ENCODING)%'

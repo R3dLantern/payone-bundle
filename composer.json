@@ -16,7 +16,9 @@
   "require": {
     "jms/serializer": "^3.17",
     "symfony/http-client": "^6.0",
-    "symfony/http-kernel": "^6.0"
+    "symfony/http-kernel": "^6.0",
+    "symfony/validator": "^6.0",
+    "symfony/intl": "^6.0"
   },
   "require-dev": {
     "symfony/config": "^6.0",

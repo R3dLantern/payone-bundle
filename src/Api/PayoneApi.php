@@ -2,10 +2,12 @@
 
 namespace Scarcloud\PayoneBundle\Api;
 
+use Exception\RequestValidationException;
 use Scarcloud\PayoneBundle\Exception\ErrorException;
 use Scarcloud\PayoneBundle\Model\PayoneRequest;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface as Exception4xx;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface as Exception3xx;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface as Exception5xx;
@@ -13,35 +15,52 @@ use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
-abstract class AbstractPayoneApi
+/**
+ * Channel Server API
+ * @author Leon Willens <lvilents@gmail.com>
+ */
+class PayoneApi
 {
+    public const API_URL = 'https://api.pay1.de/post-gateway/';
+
     public function __construct(
-        protected HttpClientInterface $httpClient,
-        protected ParameterBagInterface $parameterBag
+        private readonly ValidatorInterface $validator,
+        private readonly HttpClientInterface $httpClient,
+        private readonly ParameterBagInterface $parameterBag
     ) {
     }
 
     /**
-     * @throws TransportExceptionInterface
-     * @throws Exception4xx
+     * @param PayoneRequest $payoneRequest
+     * @return array
      * @throws Exception3xx
+     * @throws Exception4xx
      * @throws Exception5xx
-     * @throws ErrorException
+     * @throws TransportExceptionInterface
      */
-    protected function sendRequest(string $url, array $data): array
+    public function sendRequest(PayoneRequest $payoneRequest): array
     {
-        $response = $this->httpClient->request(Request::METHOD_POST, $url, [
+        $fullRequest = $this->setDefaults($payoneRequest);
+        $violations = $this->validator->validate($fullRequest);
+        if ($violations->count() > 0) {
+            throw new RequestValidationException($violations);
+        }
+
+        $response = $this->httpClient->request(Request::METHOD_POST, self::API_URL, [
             'header' => ['Accept' => 'application/json'],
-            'body' => $data
+            'body' => serialize($fullRequest)
         ]);
+
         $plainTextMimes = ['text/plain; charset=UTF-8', 'text/plain; charset=ISO-8859-1'];
         $responsePayload = in_array($response->getHeaders()['Content-Type'], $plainTextMimes)
             ? $this->parseResponse($response)
             : json_decode($response->getContent(), true)
         ;
+
         if ($responsePayload['Status'] === 'ERROR') {
             throw new ErrorException($responsePayload);
         }
+
         return $responsePayload;
     }
 
@@ -71,44 +90,15 @@ abstract class AbstractPayoneApi
         return $result;
     }
 
-    protected abstract function getBaseChannelRequest(string $request): array;
-
-    protected function getBaseRequest(string $request): array
+    protected function setDefaults(PayoneRequest $request): PayoneRequest
     {
-        $allowed = [
-            PayoneRequest::REQUEST_3DSCHECK,
-            PayoneRequest::REQUEST_ADDRESSCHECK,
-            PayoneRequest::REQUEST_AUTHORIZATION,
-            PayoneRequest::REQUEST_BANKACCOUTCHECK,
-            PayoneRequest::REQUEST_CAPTURE,
-            PayoneRequest::REQUEST_CONSUMERSCORE,
-            PayoneRequest::REQUEST_CREATEACCESS,
-            PayoneRequest::REQUEST_CREDITCARDCHECK,
-            PayoneRequest::REQUEST_DEBIT,
-            PayoneRequest::REQUEST_GETFILE,
-            PayoneRequest::REQUEST_GETINVOCE,
-            PayoneRequest::REQUEST_GETUSER,
-            PayoneRequest::REQUEST_MANAGEMANDATE,
-            PayoneRequest::REQUEST_PREAUTHORIZATION,
-            PayoneRequest::REQUEST_REFUND,
-            PayoneRequest::REQUEST_UPDATEACCESS,
-            PayoneRequest::REQUEST_UPDATEREMINDER,
-            PayoneRequest::REQUEST_UPDATEUSER,
-            PayoneRequest::REQUEST_VAUTHORIZATION,
-        ];
-        if (!in_array($request, $allowed)) {
-            throw new \RuntimeException(sprintf(
-                'Request "%s" is not a valid request method. Use one of: %s',
-                $request,
-                implode(', ', $allowed)
-            ));
-        }
-        return [
-            'mid' => $this->parameterBag->get('scarcloud_payone.mid'),
-            'portalid' => $this->parameterBag->get('scarcloud_payone.portal_id'),
-            'api_version' => $this->parameterBag->get('scarcloud_payone.api_version'),
-            'mode' => $this->parameterBag->get('scarcloud_payone.mode'),
-            'request' => $request
-        ];
+        return $request
+            ->setMid($this->parameterBag->get('scarcloud_payone.mid'))
+            ->setPortalId($this->parameterBag->get('scarcloud_payone.portal_id'))
+            ->setKey($this->parameterBag->get('scarcloud_payone.portal_key'))
+            ->setApiVersion($this->parameterBag->get('scarcloud_payone.api_version'))
+            ->setMode($this->parameterBag->get('scarcloud_payone.mode'))
+            ->setEncoding($this->parameterBag->get('scarcloud_payone.encoding'))
+        ;
     }
 }

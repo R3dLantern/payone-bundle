@@ -2,7 +2,6 @@
 
 namespace Scarcloud\PayoneBundle\Model;
 
-use JetBrains\PhpStorm\ArrayShape;
 use Scarcloud\PayoneBundle\Validator\Numeric;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -48,6 +47,18 @@ abstract class PayoneRequest
     public const CLEARINGTYPE_EWALLET = 'wlt';
     public const CLEARINGTYPE_FINANCING = 'fnc';
     public const CLEARINGTYPE_CASH_OR_HYBRID = 'csh';
+
+    public const RECURRENCE_NONE = 'none';
+    public const RECURRENCE_ONECLICK = 'oneclick';
+    public const RECURRENCE_RECURRING = 'recurring';
+    public const RECURRENCE_INSTALLMENT = 'installment';
+
+    public const BUSINESSRELATION_B2C = 'b2c';
+    public const BUSINESSRELATION_B2B = 'b2b';
+
+    public const GENDER_MALE = 'm';
+    public const GENDER_FEMALE = 'f';
+    public const GENDER_DIVERSE = 'd';
 
     #[Assert\NotBlank]
     #[Numeric(minLength: 5, maxLength: 6)]
@@ -146,15 +157,6 @@ abstract class PayoneRequest
         return $this;
     }
 
-    #[ArrayShape([
-        'mid' => 'string',
-        'portalid' => 'string',
-        'key' => 'string',
-        'api_version' => 'string',
-        'mode' => 'string',
-        'encoding' => 'null|string',
-        'request' => 'string'
-    ])]
     public function __serialize(): array
     {
         return [
